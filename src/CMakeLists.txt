@@ -12,12 +12,30 @@ target_include_directories(GGPO PUBLIC
 )
 
 if(WIN32)
-	target_compile_options(GGPO PRIVATE "/W4" "/WX")
+	# Define _WINDOWS for all Windows builds to correctly include platform headers
+	add_definitions(-D_WINDOWS)
+	
+	if(MSVC)
+		target_compile_options(GGPO PRIVATE "/W4" "/WX")
+	else()
+		# Use GCC-style flags for MinGW
+		target_compile_options(GGPO PRIVATE "-W" "-Wall")
+	endif()
 	if(BUILD_SHARED_LIBS)
 		# Link to Multimedia API and Winsocks during a shared build.
-		target_link_libraries(GGPO PUBLIC winmm.lib ws2_32.lib)
+		if(MSVC)
+			target_link_libraries(GGPO PUBLIC winmm.lib ws2_32.lib)
+		else()
+			# For MinGW, use the correct library format
+			target_link_libraries(GGPO PUBLIC winmm ws2_32)
+		endif()
 		add_definitions(-DGGPO_SHARED_LIB)
 		add_definitions(-DGGPO_SDK_EXPORT)
+	else()
+		# Even for static builds, ensure we link against required Windows libraries
+		if(NOT MSVC)
+			target_link_libraries(GGPO PUBLIC winmm ws2_32)
+		endif()
 	endif()
 endif()
 
